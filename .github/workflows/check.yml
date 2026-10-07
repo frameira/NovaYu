@@ -1,0 +1,35 @@
+name: 检查
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # 查链接、查锚点、查 index.html 有没有忘记重建
+      - name: 检查链接和锚点
+        run: python3 tools/check.py
+
+      # 顺便构建一份最新 PDF 作为产物，方便没有 Chrome 的人下载
+      - name: 生成 PDF
+        run: |
+          python3 tools/build.py
+          google-chrome --headless=new --disable-gpu --no-sandbox \
+            --no-pdf-header-footer --virtual-time-budget=8000 \
+            --print-to-pdf="$PWD/防开盒指南.pdf" "file://$PWD/index.html"
+          ls -la 防开盒指南.pdf
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdf
+          path: 防开盒指南.pdf
